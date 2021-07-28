@@ -151,7 +151,7 @@ else
             ChangeEventArgs selectedEventArgs = new ChangeEventArgs();
             selectedEventArgs.Value = value;
             selectedFileId = value;
-            OnAssociationChange(selectedEventArgs);
+            OnAssociationChange(selectedEventArgs).ConfigureAwait(true).GetAwaiter().GetResult();
 
         }
     }
@@ -195,9 +195,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        files = await Http.GetFromJsonAsync<List<FileObject>>("getfiles");
-        var invoicelist = await Http.GetFromJsonAsync<Invoices>("getinvoices");
-        invoices = invoicelist._Invoices;
+        files = await Http.GetFromJsonAsync<List<FileObject>>("files-get");
+        invoices = await Http.GetFromJsonAsync<List<Invoice>>("invoices-get");
         selectedFileId = files.FirstOrDefault().Id ?? Guid.Empty;
 
     }

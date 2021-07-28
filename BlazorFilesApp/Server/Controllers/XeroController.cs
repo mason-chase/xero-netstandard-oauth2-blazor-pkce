@@ -11,25 +11,35 @@ using Xero.NetStandard.OAuth2.Api;
 using Xero.NetStandard.OAuth2.Model.Files;
 using BlazorFilesApp.Shared;
 using System.IO;
+using Xero.NetStandard.OAuth2.Client;
+using Xero.NetStandard.OAuth2.Model.Accounting;
+using Microsoft.Extensions.Logging;
+using AccountingApiWrapper = XeroServices.AccountingApi;
 
 namespace BlazorFilesApp.Server.Controllers
 {
     public class XeroController : Controller
     {
+        private readonly AccountingApiWrapper _accountingApi;
+
+        public XeroController(AccountingApiWrapper accountingApi)
+        {
+            _accountingApi = accountingApi;
+        }
         public IActionResult Index()
         {
             return View();
         }
 
         [HttpGet]
-        [Route("getfiles")]
+        [Route("files-get")]
         public async Task<IActionResult> GetFiles()
         {
-            var FilesApi = new FilesApi();
-            var accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
-            var tenantId = await GetTenantId(accessToken);
-            var response = await FilesApi.GetFilesAsync(accessToken, tenantId);
-            var filesItems = response.Items;
+            FilesApi filesApi = new();
+            string accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
+            string tenantId = await GetTenantId(accessToken);
+            Files response = await filesApi.GetFilesAsync(accessToken, tenantId);
+            List<FileObject> filesItems = response.Items;
             return Ok(filesItems);
         }
 
@@ -37,57 +47,55 @@ namespace BlazorFilesApp.Server.Controllers
         [Route("getfolders")]
         public async Task<IActionResult> GetFolders()
         {
-            var FilesApi = new FilesApi();
-            var accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
-            var tenantId = await GetTenantId(accessToken);
-            var response = await FilesApi.GetFoldersAsync(accessToken, tenantId);
+            FilesApi FilesApi = new();
+            string accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
+            string tenantId = await GetTenantId(accessToken);
+            List<Folder> response = await FilesApi.GetFoldersAsync(accessToken, tenantId);
             return Ok(response);
         }
 
         [HttpGet]
-        [Route("getinvoices")]
+        [Route("invoices-get")]
         public async Task<IActionResult> GetInvoices()
         {
-            var accountingApi = new AccountingApi();
-            var accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
-            var tenantId = await GetTenantId(accessToken);
-            var response = await accountingApi.GetInvoicesAsync(accessToken, tenantId);
+            AccountingApi accountingApi = new();
+            string accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
+            string tenantId = await GetTenantId(accessToken);
+            Invoices response = await accountingApi.GetInvoicesAsync(accessToken, tenantId);
             return Ok(response);
         }
 
         [HttpGet]
-        [Route("getfile")]
+        [Route("file-get")]
         public async Task<IActionResult> GetFile(Guid id)
         {
-            var FilesApi = new FilesApi();
-            var accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
-            var tenantId = await GetTenantId(accessToken);
-            var response = await FilesApi.GetFileContentAsync(accessToken, tenantId, id);
-            using (var memoryStream = new MemoryStream())
-            {
-                response.CopyTo(memoryStream);
-                return Ok(memoryStream.ToArray());
-            }
+            FilesApi FilesApi = new();
+            string accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
+            string tenantId = await GetTenantId(accessToken);
+            Stream response = await FilesApi.GetFileContentAsync(accessToken, tenantId, id);
+            MemoryStream memoryStream = new();
+            response.CopyTo(memoryStream);
+            return Ok(memoryStream.ToArray());
         }
 
         [HttpGet]
-        [Route("getassociation")]
+        [Route("get-association")]
         public async Task<IActionResult> GetAssociation(Guid id)
         {
-            var FilesApi = new FilesApi();
-            var accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
-            var tenantId = await GetTenantId(accessToken);
-            var response = await FilesApi.GetFileAssociationsAsync(accessToken, tenantId, id);
+            FilesApi FilesApi = new();
+            string accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
+            string tenantId = await GetTenantId(accessToken);
+            List<Association> response = await FilesApi.GetFileAssociationsAsync(accessToken, tenantId, id);
             return Ok(response);
         }
 
         [HttpPost]
-        [Route("uploadfile")]
+        [Route("file-upload")]
         public async Task<IActionResult> UploadFile([FromBody] XeroUpload file)
         {
-            var FilesApi = new FilesApi();
-            var accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
-            var tenantId = await GetTenantId(accessToken);
+            FilesApi FilesApi = new();
+            string accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
+            string tenantId = await GetTenantId(accessToken);
             if (file.FolderId == null || file.FolderId == Guid.Empty)
             {
                 await FilesApi.UploadFileAsync(accessToken, tenantId, file.FileContent, file.FileName, file.FileName, file.ContentType);
@@ -101,15 +109,15 @@ namespace BlazorFilesApp.Server.Controllers
 
 
         [HttpPost]
-        [Route("createfolder")]
+        [Route("folder-create")]
         public async Task<IActionResult> CreateFolder([FromBody] XeroFolder createFolder)
         {
-            var FilesApi = new FilesApi();
-            var accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
-            var tenantId = await GetTenantId(accessToken);
-            var folder = new Folder();
+            FilesApi FilesApi = new();
+            string accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
+            string tenantId = await GetTenantId(accessToken);
+            Folder folder = new();
             folder.Name = createFolder.Name;
-            var test = await FilesApi.CreateFolderAsync(accessToken, tenantId, folder);
+            await FilesApi.CreateFolderAsync(accessToken, tenantId, folder);
             return Redirect("/");
         }
 
@@ -117,10 +125,32 @@ namespace BlazorFilesApp.Server.Controllers
         [Route("deletefolder")]
         public async Task<IActionResult> DeleteFolder([FromBody] Folder folder)
         {
-            var FilesApi = new FilesApi();
-            var accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
-            var tenantId = await GetTenantId(accessToken);
+            FilesApi FilesApi = new();
+            string accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
+            string tenantId = await GetTenantId(accessToken);
             await FilesApi.DeleteFolderAsync(accessToken, tenantId, folder.Id ?? Guid.Empty);
+            return Redirect("/");
+        }
+        
+        [HttpPost]
+        [Route("invoice-delete")]
+        public async Task<IActionResult> InvoiceDelete([FromBody] Invoice invoice)
+        {
+            string accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
+            string tenantId = await GetTenantId(accessToken);
+            //AccountingApi accountingApi = new();
+            //accountingApi.Invoice
+            if (invoice.InvoiceID is not null)
+            {
+                var invoices = new Invoices()
+                {
+                    _Invoices = new List<Invoice> { invoice }
+                };
+                _accountingApi.VoidInvoices(invoices, accessToken, tenantId);
+            }
+                
+
+            //await accountingApi.UpdateInvoiceAsync(accessToken, tenantId, invoice.InvoiceID ?? Guid.Empty);
             return Redirect("/");
         }
 
@@ -128,9 +158,9 @@ namespace BlazorFilesApp.Server.Controllers
         [Route("deleteassociation")]
         public async Task<IActionResult> DeleteAssociation([FromBody] Association association)
         {
-            var FilesApi = new FilesApi();
-            var accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
-            var tenantId = await GetTenantId(accessToken);
+            FilesApi FilesApi = new();
+            string accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
+            string tenantId = await GetTenantId(accessToken);
             await FilesApi.DeleteFileAssociationAsync(accessToken, tenantId, association.FileId ?? Guid.Empty, association.ObjectId ?? Guid.Empty);
             return Redirect("/");
         }
@@ -139,9 +169,9 @@ namespace BlazorFilesApp.Server.Controllers
         [Route("deletefile")]
         public async Task<IActionResult> DeleteFile([FromBody] FileObject file)
         {
-            var FilesApi = new FilesApi();
-            var accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
-            var tenantId = await GetTenantId(accessToken);
+            FilesApi FilesApi = new();
+            string accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
+            string tenantId = await GetTenantId(accessToken);
             await FilesApi.DeleteFileAsync(accessToken, tenantId, file.Id ?? Guid.Empty);
             return Redirect("/");
         }
@@ -150,9 +180,9 @@ namespace BlazorFilesApp.Server.Controllers
         [Route("createassociation")]
         public async Task<IActionResult> CreateAssociation([FromBody] Association association)
         {
-            var FilesApi = new FilesApi();
-            var accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
-            var tenantId = await GetTenantId(accessToken);
+            FilesApi FilesApi = new();
+            string accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
+            string tenantId = await GetTenantId(accessToken);
             await FilesApi.CreateFileAssociationAsync(accessToken, tenantId, association.FileId ?? Guid.Empty, association);
             return Redirect("/");
         }
@@ -162,10 +192,10 @@ namespace BlazorFilesApp.Server.Controllers
         [Route("getassociations")]
         public async Task<IActionResult> GetAssociations(Guid id)
         {
-            var filesApi = new FilesApi();
-            var accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
-            var tenantId = await GetTenantId(accessToken);
-            var response = await filesApi.GetFileAssociationsAsync(accessToken, tenantId, id);
+            FilesApi filesApi = new();
+            string accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
+            string tenantId = await GetTenantId(accessToken);
+            List<Association> response = await filesApi.GetFileAssociationsAsync(accessToken, tenantId, id);
             return Ok(response);
         }
 
@@ -173,27 +203,22 @@ namespace BlazorFilesApp.Server.Controllers
         [Route("getconnection")]
         public async Task<IActionResult> GetConnection()
         {
-            var FilesApi = new FilesApi();
-            var accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
-            var tenantId = GetTenantId(accessToken);
+            string accessToken = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
+            await GetTenantId(accessToken);
 
-            using (HttpClient client = new HttpClient())
-            {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                List<Connection> connections = await client.GetFromJsonAsync<List<Connection>>("https://api.xero.com/connections");
-                return Ok(connections.FirstOrDefault());
-            }
+            HttpClient client = new();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            List<Connection> connections = await client.GetFromJsonAsync<List<Connection>>("https://api.xero.com/connections");
+            return Ok(connections.FirstOrDefault());
         }
 
         public async Task<string> GetTenantId(string accessToken)
         {
-            using (HttpClient client = new HttpClient())
-            {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                List<Connection> connections = await client.GetFromJsonAsync<List<Connection>>("https://api.xero.com/connections");
-                var tenantId = connections.FirstOrDefault().tenantId;
-                return tenantId;
-            }
+            HttpClient client = new();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            List<Connection> connections = await client.GetFromJsonAsync<List<Connection>>("https://api.xero.com/connections");
+            string tenantId = connections.FirstOrDefault().TenantId;
+            return tenantId;
         }
     }
 

@@ -1,0 +1,114 @@
+﻿@page "/invoices"
+@using BlazorFilesApp.Shared
+@using Xero.NetStandard.OAuth2.Model.Accounting;
+@using System.Text.Json
+@using System.Text
+@using System.IO
+@using System.Linq
+@using Microsoft.Extensions.Logging
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Web
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+
+@inject ILogger<Invoices> Logger
+@inject HttpClient Http
+@inject IJSRuntime JsRuntime
+
+<h3>Files</h3>
+
+@if (_invoices == null)
+{
+    <p><em>Loading Invoices...</em></p>
+}
+else
+{
+    @* Uncomment this img tag and the call in OnInitializedAsync to display the first image from the API. *@
+    @*<img src="data:image;base64,@System.Convert.ToBase64String(image)" width="200" height="200" />*@
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Number</th>
+                <th>Ref</th>
+                <th>Type</th>
+                <th>To</th>
+                <th>Date</th>
+                <th>Due Date</th>
+                <th>Paid</th>
+                <th>Due</th>
+                <th>Currency</th>
+                <th>Status</th>
+                <th>Sent</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (Invoice invoice in _invoices)
+            {
+            <tr>
+                <td>@invoice.InvoiceNumber</td>
+                <td>@invoice.Reference</td>
+                <td>@invoice.Type</td>
+                <td>@invoice.Contact</td>
+                <td>@invoice.Date</td>
+                <td>@invoice.DueDate</td>
+                <td>@invoice.AmountPaid</td>
+                <td>@invoice.AmountDue</td>
+                <td>@invoice.CurrencyCode</td>
+                <td>@invoice.Status</td>
+                <td>@invoice.SentToContact</td>
+                <td><button @onclick="() => Delete(invoice)">Delete</button></td>
+            </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<h2> Upload File </h2>
+<p>
+    Select a Folder from the dropdown to upload to it. Otherwise it will be uploaded to the Inbox folder.
+</p>
+
+@if (_invoices == null)
+{
+    <p><em>Loading Folders...</em></p>
+}
+else
+{
+    <select @bind="_invoiceId">
+        <option>--select--</option>
+        @foreach (Invoice item in _invoices)
+        {
+            <option value="@item.InvoiceID">@item.Contact.Name @item.InvoiceNumber</option>
+        }
+    </select>
+}
+
+@code {
+
+    private List<Invoice> _invoices;
+    private byte[] _image;
+    private Guid? _invoiceId;
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _invoices = await Http.GetFromJsonAsync<List<Invoice>>("invoices-get");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        //image = await Http.GetFromJsonAsync<byte[]>(string.Format("file-get/?id={0}", filesItems.FirstOrDefault().Id));
+    }
+    
+    async Task Delete(Invoice invoice)
+    {
+        bool confirmed = await JsRuntime.InvokeAsync<bool>("confirm", string.Format("Are you sure you want to delete the invoice no. '{0}' issued to {1}?\nFile Id= {1}\n", invoice.InvoiceNumber, invoice.Contact.Name));
+        if (confirmed)
+        {
+            _invoices = _invoices.Where(x => x.InvoiceID != invoice.InvoiceID).ToList();
+            Console.WriteLine("Deleting " + invoice.InvoiceNumber);
+            await Http.PostAsJsonAsync("invoice-delete", invoice);
+        }
+    }
+}

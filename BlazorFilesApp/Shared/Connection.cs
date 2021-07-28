@@ -1,11 +1,23 @@
-﻿using System;
-public class Connection
+﻿using Newtonsoft.Json;
+using System;
+
+namespace BlazorFilesApp.Shared
 {
-    public string id { get; set; }
-    public string authEventId { get; set; }
-    public string tenantId { get; set; }
-    public string tenantType { get; set; }
-    public string tenantName { get; set; }
-    public DateTime createdDateUtc { get; set; }
-    public DateTime updatedDateUtc { get; set; }
+    public class Connection
+    {
+        [JsonProperty("id")]
+        public string Id { get; set; }
+        [JsonProperty("authEventId")]
+        public string AuthEventId { get; set; }
+        [JsonProperty("tenantId")]
+        public string TenantId { get; set; }
+        [JsonProperty("tenantType")]
+        public string TenantType { get; set; }
+        [JsonProperty("tenantName")]
+        public string TenantName { get; set; }
+        [JsonProperty("createdDateUtc")]
+        public DateTime CreatedDateUtc { get; set; }
+        [JsonProperty("updatedDateUtc")]
+        public DateTime UpdatedDateUtc { get; set; }
+    }
 }

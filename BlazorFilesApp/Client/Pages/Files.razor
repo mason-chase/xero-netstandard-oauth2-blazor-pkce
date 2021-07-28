@@ -92,8 +92,8 @@ else
             FolderId = folderId ?? null
         };
 
-        await Http.PostAsJsonAsync<XeroUpload>("uploadfile", file);
-        filesItems = await Http.GetFromJsonAsync<List<FileObject>>("getfiles");
+        await Http.PostAsJsonAsync<XeroUpload>("file-upload", file);
+        filesItems = await Http.GetFromJsonAsync<List<FileObject>>("files-get");
     }
 
     async Task Delete(FileObject file)
@@ -115,13 +115,13 @@ else
     {
         try
         {
-            filesItems = await Http.GetFromJsonAsync<List<FileObject>>("getfiles");
+            filesItems = await Http.GetFromJsonAsync<List<FileObject>>("files-get");
         }
         catch (AccessTokenNotAvailableException exception)
         {
             exception.Redirect();
         }
         folders = await Http.GetFromJsonAsync<List<Folder>>("getfolders");
-        //image = await Http.GetFromJsonAsync<byte[]>(string.Format("getfile/?id={0}", filesItems.FirstOrDefault().Id));
+        //image = await Http.GetFromJsonAsync<byte[]>(string.Format("file-get/?id={0}", filesItems.FirstOrDefault().Id));
     }
 }

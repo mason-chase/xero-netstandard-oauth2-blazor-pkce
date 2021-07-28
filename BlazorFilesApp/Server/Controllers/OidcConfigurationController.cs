@@ -6,12 +6,12 @@ namespace BlazorFilesApp.Server.Controllers
 {
     public class OidcConfigurationController : Controller
     {
-        private readonly ILogger<OidcConfigurationController> _logger;
+        private readonly ILogger<OidcConfigurationController> Logger;
 
         public OidcConfigurationController(IClientRequestParametersProvider clientRequestParametersProvider, ILogger<OidcConfigurationController> logger)
         {
             ClientRequestParametersProvider = clientRequestParametersProvider;
-            _logger = logger;
+            Logger = logger;
         }
 
         public IClientRequestParametersProvider ClientRequestParametersProvider { get; }
@@ -20,6 +20,7 @@ namespace BlazorFilesApp.Server.Controllers
         public IActionResult GetClientRequestParameters([FromRoute] string clientId)
         {
             var parameters = ClientRequestParametersProvider.GetClientParameters(HttpContext, clientId);
+            Logger.LogDebug(parameters.ToString());
             return Ok(parameters);
         }
     }

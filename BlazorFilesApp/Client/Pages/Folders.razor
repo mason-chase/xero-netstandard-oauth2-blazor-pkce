@@ -82,7 +82,7 @@ else
         {
             Name = exampleFolder.Name
         };
-        await Http.PostAsJsonAsync<XeroFolder>("createfolder", createFolder);
+        await Http.PostAsJsonAsync<XeroFolder>("folder-create", createFolder);
         await OnInitializedAsync();
     }
 

@@ -10,6 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\XeroServices.Tests\XeroServices.Tests.csproj" />
     <ProjectReference Include="..\Client\BlazorFilesApp.Client.csproj" />
     <ProjectReference Include="..\Shared\BlazorFilesApp.Shared.csproj" />
   </ItemGroup>
