@@ -14,7 +14,7 @@ using System.IO;
 using Xero.NetStandard.OAuth2.Client;
 using Xero.NetStandard.OAuth2.Model.Accounting;
 using Microsoft.Extensions.Logging;
-using AccountingApiWrapper = XeroServices.AccountingApi;
+using AccountingApiWrapper = XeroServices.XeroServices;
 
 namespace BlazorFilesApp.Server.Controllers
 {
@@ -146,7 +146,8 @@ namespace BlazorFilesApp.Server.Controllers
                 {
                     _Invoices = new List<Invoice> { invoice }
                 };
-                _accountingApi.VoidInvoices(invoices, accessToken, tenantId);
+                _accountingApi.SetAuth(accessToken, tenantId);
+                _accountingApi.VoidInvoices(invoices);
             }
                 
 

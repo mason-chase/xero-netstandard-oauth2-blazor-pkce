@@ -32,11 +32,6 @@ namespace XeroServices.WebDriver
                 {
                     return operation(webDriver);
                 }
-                catch (NoSuchWindowException ex)
-                {
-                    // Todo handle this in 
-                    throw;
-                }
                 catch (NotFoundException ex)
                 {
                     onError?.Invoke(new NotFoundException($"Selenium operation failed after {retryCount} retry", ex));
@@ -78,7 +73,7 @@ namespace XeroServices.WebDriver
 
         public static WebDriverWait GetWait(this IWebDriver webDriver, int timeoutMilliseconds = 2000, int intervalMilliseconds = 500, params Type[] exceptionTypes)
         {
-            WebDriverWait wait = new WebDriverWait(webDriver, TimeSpan.FromMilliseconds(timeoutMilliseconds))
+            WebDriverWait wait = new(webDriver, TimeSpan.FromMilliseconds(timeoutMilliseconds))
             {
                 PollingInterval = TimeSpan.FromMilliseconds(intervalMilliseconds)
             };
@@ -88,7 +83,7 @@ namespace XeroServices.WebDriver
 
         public static TResult DoWait<TResult>(this IWebDriver webDriver, Func<IWebDriver, TResult> operation, int timeoutMilliseconds, int intervalMilliseconds = 500, params Type[] exceptionTypes)
         {
-            WebDriverWait wait = new WebDriverWait(webDriver, TimeSpan.FromMilliseconds(timeoutMilliseconds))
+            WebDriverWait wait = new(webDriver, TimeSpan.FromMilliseconds(timeoutMilliseconds))
             {
                 PollingInterval = TimeSpan.FromMilliseconds(intervalMilliseconds)
             };
@@ -98,7 +93,7 @@ namespace XeroServices.WebDriver
 
         public static Task<TResult> DoWaitAsync<TResult>(this IWebDriver webDriver, Func<IWebDriver, Task<TResult>> operation, int timeoutMilliseconds, int intervalMilliseconds = 500, params Type[] exceptionTypes)
         {
-            WebDriverWait wait = new WebDriverWait(webDriver, TimeSpan.FromMilliseconds(timeoutMilliseconds))
+            WebDriverWait wait = new(webDriver, TimeSpan.FromMilliseconds(timeoutMilliseconds))
             {
                 PollingInterval = TimeSpan.FromMilliseconds(intervalMilliseconds)
             };
@@ -126,7 +121,7 @@ namespace XeroServices.WebDriver
 
         public static IWebElement WaitForElementIsVisible(this IWebDriver webDriver, By path, int timeoutMilliseconds = 20000, int intervalMilliseconds = 500)
         {
-            WebDriverWait wait = new WebDriverWait(webDriver, TimeSpan.FromMilliseconds(timeoutMilliseconds))
+            WebDriverWait wait = new(webDriver, TimeSpan.FromMilliseconds(timeoutMilliseconds))
             {
                 PollingInterval = TimeSpan.FromMilliseconds(intervalMilliseconds)
             };
@@ -281,14 +276,9 @@ namespace XeroServices.WebDriver
                 {
                     return webDriver.FindElement(path);
                 }
-                catch (NoSuchWindowException ex)
-                {
-                    // Todo handle this in 
-                    throw;
-                }
                 catch (NotFoundException)
                 {
-                    Logger.LogDebug($"Failed to find element: {path.ToString()} (attempt {tryCount}/{retryCount}");
+                    Logger.LogDebug($"Failed to find element: {path} (attempt {tryCount}/{retryCount}");
                     if (tryCount < retryCount)
                     {
                         Thread.Sleep(timeoutMilliseconds);
@@ -629,9 +619,7 @@ namespace XeroServices.WebDriver
 
             Bitmap image = new(ms);
             Bitmap imageCropped = image.Clone(rectangle, image.PixelFormat);
-            FileStream outputStream = new(fileName, FileMode.CreateNew);
             imageCropped.Save(fileName, format);
-
         }
 
 
@@ -643,17 +631,7 @@ namespace XeroServices.WebDriver
         public static byte[] GetScreenshotFromElement(this IWebDriver webDriver, By path)
         {
             IWebElement element = webDriver.FindElementWait(path, 5000, 3);
-            IWebDriver wrappedDriver = ((IWrapsDriver)element).WrappedDriver;
-
-
-        }
-
-        // extension method
-        public static byte[] ImageToByteArray(this Image image)
-        {
-            MemoryStream ms = new();
-            image.Save(ms, image.RawFormat);
-            return ms.ToArray();
+            return GetScreenshotFromElement(webDriver, element);
         }
 
         public static byte[] GetScreenshotFromElement(this IWebDriver webDriver, IWebElement element)
@@ -667,6 +645,15 @@ namespace XeroServices.WebDriver
             Bitmap imageCropped = image.Clone(rectangle, image.PixelFormat);
             return imageCropped.ImageToByteArray();
 
+        }
+
+
+        // extension method
+        public static byte[] ImageToByteArray(this Image image)
+        {
+            MemoryStream ms = new();
+            image.Save(ms, image.RawFormat);
+            return ms.ToArray();
         }
 
         #endregion
@@ -915,7 +902,7 @@ namespace XeroServices.WebDriver
             {
                 try
                 {
-                    WebDriverWait wait = new WebDriverWait(webDriver, new TimeSpan(0, 0, 30));
+                    WebDriverWait wait = new(webDriver, new TimeSpan(0, 0, 30));
                     wait.Until(SeleniumExtras.WaitHelpers.ExpectedConditions.ElementIsVisible(by));
 
                     //return new WebDriverWait(_webDriver, TimeSpan.FromSeconds(timeout))

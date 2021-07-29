@@ -1,46 +1,68 @@
 using Azihub.Utilities.Base.Tests;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xero.NetStandard.OAuth2.Api;
 using Xero.NetStandard.OAuth2.Model.Accounting;
+using XeroServices.Tests.DataSamples;
 using XeroServices.Tests.Settings;
 using Xunit;
 using Xunit.Abstractions;
+using static XeroServices.Tests.Settings.AppSettings;
 
 namespace XeroServices.Tests
 {
-    public class AccountingTests : TestBase
+    public class ApiTests : TestBase
     {
-        private static string _accessToken = AppSettings.Global.TestAccessToken;
-        private readonly string _tenantId;
 
-        public AccountingTests(ITestOutputHelper outputHelper) : base(outputHelper)
+        public ApiTests(ITestOutputHelper outputHelper) : base(outputHelper)
         {
-            _accessToken = AppSettings.Global.TestAccessToken;
-            _tenantId = ApiClient.GetTenantId(_accessToken);
         }
 
         [Fact]
         public void GetConnectionTest()
         {
 
-            string tenantId = ApiClient.GetTenantId(_accessToken);
+            string tenantId = ApiClient.GetTenantId(AccessToken);
             Assert.True(string.IsNullOrEmpty(tenantId));
         }
 
         [Fact]
+        public void GetOrganisationTest()
+        {
+            // Setup
+            XeroServices accountingApi = new(Output.BuildLoggerFor<XeroServices>());
+            accountingApi.SetAuth(AccessToken, TenantId);
+            accountingApi.SetOrganisation(GetSampleData.GetSampleOrganisation());
+
+            // Act
+            Organisations response = accountingApi.GetOrganisations();
+            
+            // Assert
+            string json = JsonConvert.SerializeObject(response._Organisations.First(), Formatting.Indented);
+            Assert.True(response._Organisations.Count > 0);
+
+        }
+        [Fact]
         public void GetInvoicesTest()
         {
-            AccountingApi accountingApi = new(Output.BuildLoggerFor<AccountingApi>());
-            List<Invoice> response = accountingApi.GetInvoices(_accessToken, _tenantId);
+            // Setup
+            XeroServices accountingApi = new(Output.BuildLoggerFor<XeroServices>());
+            accountingApi.SetAuth(AccessToken, TenantId);
+            accountingApi.SetOrganisation(GetSampleData.GetSampleOrganisation());
+            
+            // Act
+            List<Invoice> response = accountingApi.GetInvoices(GetSampleData.GetSampleOrganisation());
+            
+            // Assert
             Assert.True(response.Count > 0);
 
             List<InvoiceSelect> selectCreditNote = response.Where(
                 x => x.Type == Invoice.TypeEnum.ACCREC &&
                 !x.InvoiceNumber.StartsWith("INV-LIC01") &&
                 x.AmountPaid == 0 &&
-                x.AmountDue == 0 &&
+                x.AmountDue > 0 &&
                 x.Status != Invoice.StatusEnum.VOIDED
 
                 ).Select(x => new InvoiceSelect()
@@ -58,14 +80,15 @@ namespace XeroServices.Tests
         [Fact]
         public void DeleteSelectedSingleInvoiceTest()
         {
-            AccountingApi accountingApi = new(Output.BuildLoggerFor<AccountingApi>());
-            List<Invoice> response = accountingApi.GetInvoices(_accessToken, _tenantId);
+            XeroServices accountingApi = new(Output.BuildLoggerFor<XeroServices>());
+            accountingApi.SetAuth(AccessToken, TenantId);
+            List<Invoice> response = accountingApi.GetInvoices(GetSampleData.GetSampleOrganisation());
             Assert.True(response.Count > 0);
 
             Invoice singleInvoice = response.Last(x => x.Type == Invoice.TypeEnum.ACCREC &&
                                                           !x.InvoiceNumber.StartsWith("INV-LIC01") &&
-                                                          x.AmountPaid == 0 &&
-                                                          x.AmountDue == 0 &&
+                                                          //x.AmountPaid == 0 &&
+                                                          x.AmountDue >0 &&
                                                           x.Status != Invoice.StatusEnum.VOIDED);
 
             Output.WriteLine(
@@ -76,35 +99,38 @@ namespace XeroServices.Tests
                 $"InvoiceID :" + singleInvoice.InvoiceID 
                 );
             
-            accountingApi.VoidInvoices(new Invoices() { _Invoices = new List<Invoice> { singleInvoice } }, _accessToken, _tenantId);
+            accountingApi.VoidInvoices(new Invoices() { _Invoices = new List<Invoice> { singleInvoice } });
         }
         
         [Fact]
         public void DeleteSelectedInvoicesTest()
         {
-            AccountingApi accountingApi = new(Output.BuildLoggerFor<AccountingApi>());
-            List<Invoice> response = accountingApi.GetInvoices(_accessToken, _tenantId);
+            XeroServices accountingApi = new(Output.BuildLoggerFor<XeroServices>());
+            accountingApi.SetAuth(AccessToken, TenantId, XeroLogin);
+
+            List<Invoice> response = accountingApi.GetInvoices(GetSampleData.GetSampleOrganisation());
             Assert.True(response.Count > 0);
 
             List<Invoice> selectCreditNote = response.Where(
                 x => x.Type == Invoice.TypeEnum.ACCREC &&
                      !x.InvoiceNumber.StartsWith("INV-LIC01") &&
-                     x.AmountPaid == 0 &&
-                     x.AmountDue == 0 &&
+                     //x.AmountPaid == 0 &&
+                     x.AmountDue > 0 &&
                      x.Status != Invoice.StatusEnum.VOIDED
 
             ).ToList();
 
-            Output.WriteLine(string.Join("\n", selectCreditNote.Select(x => new InvoiceSelect()
-                {
-                    InvoiceNumber = x.InvoiceNumber,
-                    AmountDue = x.AmountDue.ToString(),
-                    AmountPaid = x.AmountPaid.ToString(),
-                    ContactName = x.Contact.Name
-                }
+            Output.WriteLine(
+                string.Join("\n", selectCreditNote.Select(x => new InvoiceSelect()
+            {
+                InvoiceNumber = x.InvoiceNumber,
+                AmountDue = x.AmountDue.ToString(),
+                AmountPaid = x.AmountPaid.ToString(),
+                ContactName = x.Contact.Name
+            }
             ).ToList()));
 
-            accountingApi.VoidInvoices(new Invoices() { _Invoices = selectCreditNote }, _accessToken, _tenantId);
+            accountingApi.VoidInvoices(new Invoices() { _Invoices = selectCreditNote });
         }
     }
 

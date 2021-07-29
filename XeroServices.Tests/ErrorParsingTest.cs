@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Xero.NetStandard.OAuth2.Model.Accounting;
 using XeroServices.ErrorResponse;
 using XeroServices.Tests.DataSamples;
 using Xunit;
@@ -16,6 +17,16 @@ namespace XeroServices.Tests
     public class ErrorParsingTest : TestBase
     {
         public ErrorParsingTest(ITestOutputHelper outputHelper) : base(outputHelper) { }
+
+        [Fact]
+        public void GetOrganisation()
+        {
+            Organisation organisation = GetSampleData.GetSampleOrganisation();
+            Assert.NotNull(organisation.Name);
+            Assert.NotEqual(Guid.Empty, organisation.OrganisationID);
+            Assert.True(!string.IsNullOrEmpty(organisation.ShortCode));
+        }
+
         [Fact]
         public void TestErrorParse()
         {

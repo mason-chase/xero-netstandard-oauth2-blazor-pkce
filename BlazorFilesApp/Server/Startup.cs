@@ -31,7 +31,7 @@ namespace BlazorFilesApp.Server
                 options.UseSqlServer(
                     Configuration.GetConnectionString("DefaultConnection")));
 
-            services.AddTransient<XeroServices.AccountingApi>();
+            services.AddTransient<XeroServices.XeroServices>();
             services.AddDatabaseDeveloperPageExceptionFilter();
 
             services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
