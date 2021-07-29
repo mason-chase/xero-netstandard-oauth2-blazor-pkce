@@ -115,7 +115,7 @@ namespace XeroServices.Tests
                 x => x.Type == Invoice.TypeEnum.ACCREC &&
                      !x.InvoiceNumber.StartsWith("INV-LIC01") &&
                      //x.AmountPaid == 0 &&
-                     x.AmountDue > 0 &&
+                     x.AmountDue == 0 &&
                      x.Status != Invoice.StatusEnum.VOIDED
 
             ).ToList();

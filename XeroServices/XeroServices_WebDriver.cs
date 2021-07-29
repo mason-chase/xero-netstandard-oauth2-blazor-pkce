@@ -116,7 +116,7 @@ namespace XeroServices
             List<IWebElement> creditNotes = new();
             try
             {
-                creditNotes = WebDriver.FindElementsWait(By.XPath($"//A[text()='Credit Note']"), 2000, 3).ToList();
+                creditNotes = WebDriver.FindElementsWait(By.XPath("//A[text()='Credit Note']"), 2000, 3).ToList();
 
                 if (creditNotes.Count > 0)
                 {
@@ -128,6 +128,37 @@ namespace XeroServices
 
                         ((IJavaScriptExecutor)WebDriver).ExecuteScript("creditNote = window.open();");
                         WebDriver.SwitchTo().Window(WebDriver.WindowHandles.Last());
+                        WebDriver.GoToUrlWait(string.Format(CREDIT_NOTE_URL, creditNoteId));
+
+                        List <IWebElement> allocations = WebDriver.FindElementsWait(By.XPath("//div[@class='payment']//a[contains(text(),'Invoice')]"), 2000, 3).ToList();
+                        List<IWebElement> allocationsDelete = WebDriver.FindElementsWait(By.XPath("//a[contains(@class,'delete-small')]"), 2000, 3).ToList();
+                        
+                        for(int i = 0; i < allocations.Count(); i++)
+                        {
+                            Guid allocationId = (Guid)allocations[i].GetAttribute("href").FindGuid();
+                            if (allocationId == invoice.InvoiceID)
+                            {
+                                allocationsDelete[i].Click();
+                                // //button[text()='OK']
+                                IWebElement clickOk = WebDriver.FindElementWait(By.XPath("//a[contains(@class,'delete-small')]"), 2000, 3);
+                                clickOk.Click();
+                            }
+
+                        }
+
+                        try
+                        {
+                            IWebElement options = WebDriver.FindElementWait(By.XPath("//div[contains(text(),'Credit Note Options')]"), 2000, 3);
+                            options.Click();
+
+                            IWebElement voidCreditNote = WebDriver.FindElementWait(By.XPath("//a[contains(text(),'Void')]"), 2000, 3);
+                            voidCreditNote.Click();
+                        }
+                        catch (NotFoundException)
+                        {
+
+                        }
+                        
                         ((IJavaScriptExecutor)WebDriver).ExecuteScript("creditNote.close();");
                     }
                 }
@@ -167,7 +198,7 @@ namespace XeroServices
         }
 
         private IWebDriver WebDriver { get; set; }
-        private void Login()
+        private void Login() 
         {
             WebDriver = WebDriverFactory.Create();
             WebDriver.GoToUrlWait(GO_XERO_LOGIN_URL);
@@ -198,6 +229,7 @@ namespace XeroServices
             WebDriver.WaitForReadyState();
 
             SwitchOrganisation();
+            LoggedIn = true;
         }
 
         private void SwitchOrganisation()

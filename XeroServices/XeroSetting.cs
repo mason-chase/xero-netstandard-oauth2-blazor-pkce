@@ -25,5 +25,6 @@ namespace XeroServices
         public const string LOGOUT_URL = "https://login.xero.com/signin/loggedout";
         public const string API_URL = "https://api.xero.com";
         public const string INVOICE_URL = "https://go.xero.com/AccountsReceivable/View.aspx?InvoiceID={0}";
+        public const string CREDIT_NOTE_URL = "https://go.xero.com/AccountsReceivable/ViewCreditNote.aspx?creditNoteID={0}";
     }
 }
