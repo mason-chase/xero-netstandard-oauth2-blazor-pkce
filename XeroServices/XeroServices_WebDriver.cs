@@ -141,6 +141,7 @@ namespace XeroServices
                                 allocationsDelete[i].Click();
                                 // //button[text()='OK']
                                 IWebElement clickOk = WebDriver.FindElementWait(By.XPath("//a[contains(@class,'delete-small')]"), 2000, 3);
+                                Thread.Sleep(1000);
                                 clickOk.Click();
                             }
 
